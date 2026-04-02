@@ -1,0 +1,33 @@
+column_name,data_type,description,unit,example
+datetime,datetime64,Timestamp (hourly),UTC,2024-02-07 00:00:00
+pm25,float64,PM2.5 concentration,µg/m³,35.2
+year,int64,Calendar year,-,2024
+month,int64,Month (1-12),-,2
+day,int64,Day of month,-,7
+hour,int64,Hour of day (0-23),-,14
+day_of_week,int64,Day of week (0=Mon),-,2
+is_weekend,int64,Weekend indicator (0/1),-,0
+is_dry_season,int64,Dry season indicator (0/1),-,1
+pm25_lag1,float64,PM2.5 from 1h ago,µg/m³,34.8
+pm25_lag24,float64,PM2.5 from 24h ago,µg/m³,38.1
+pm25_lag168,float64,PM2.5 from 1 week ago,µg/m³,32.5
+pm25_rolling_3h,float64,3-hour rolling mean,µg/m³,35.6
+pm25_rolling_24h,float64,24-hour rolling mean,µg/m³,36.2
+pm25_rolling_7d,float64,7-day rolling mean,µg/m³,34.9
+pm25_rolling_24h_std,float64,24-hour rolling std dev,µg/m³,5.3
+temperature,float64,Air temperature,°C,18.5
+humidity,float64,Relative humidity,%,65
+dew_point,float64,Dew point temperature,°C,12.3
+wind_speed,float64,Wind speed,m/s,2.1
+wind_direction,float64,Wind direction,degrees,180
+wind_gusts,float64,Wind gusts,m/s,4.2
+pressure_msl,float64,Sea level pressure,hPa,1013.2
+surface_pressure,float64,Surface pressure,hPa,1008.5
+cloud_cover,float64,Cloud cover,%,45
+precipitation,float64,Total precipitation,mm,0.0
+rain,float64,Rain only,mm,0.0
+wind_u,float64,U-component of wind,m/s,-1.2
+wind_v,float64,V-component of wind,m/s,1.8
+temp_humidity,float64,Temperature × humidity interaction,-,1202.5
+pressure_diff,float64,Pressure change from previous hour,hPa,0.3
+is_raining,int64,Rain indicator (0/1),-,0
