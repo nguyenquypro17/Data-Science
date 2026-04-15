@@ -1,1 +1,4 @@
 .DS_Store
+hanoi_air_quality_data_design_spec.md
+.venv/
+__pycache__/
