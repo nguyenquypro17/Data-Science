@@ -90,7 +90,6 @@ def hourly_payload_to_df(payload: dict) -> pd.DataFrame:
     df["time"] = pd.to_datetime(df["time"], utc=True).dt.tz_convert("UTC").dt.tz_localize(None)
     return df.rename(columns={"time": "datetime"})
 
-
 def fetch_air_quality(start_date: str, end_date: str) -> pd.DataFrame:
     url = "https://air-quality-api.open-meteo.com/v1/air-quality"
     base_params = {
