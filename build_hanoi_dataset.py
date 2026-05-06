@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import time
 
@@ -165,6 +166,20 @@ def fetch_weather(start_date: str, end_date: str) -> pd.DataFrame:
 
 def save_csv(df: pd.DataFrame, path: Path) -> None:
     df.to_csv(path, index=False)
+
+
+def load_raw_csvs(raw_dir: Path) -> pd.DataFrame:
+    files = sorted(raw_dir.glob("*.csv"))
+    if not files:
+        raise FileNotFoundError(f"No raw CSV files found in {raw_dir}")
+
+    parts = [pd.read_csv(path, parse_dates=["datetime"]) for path in files]
+    return (
+        pd.concat(parts, ignore_index=True)
+        .drop_duplicates(subset=["datetime"])
+        .sort_values("datetime")
+        .reset_index(drop=True)
+    )
 
 
 def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -333,7 +348,46 @@ def build_dataset(aq_df: pd.DataFrame, weather_df: pd.DataFrame) -> pd.DataFrame
     return df[ordered_cols].sort_values("datetime").reset_index(drop=True)
 
 
-def main():
+TRAIN_REQUIRED_COLUMNS = [
+    "pm25_lag1",
+    "pm25_lag6",
+    "pm25_lag24",
+    "pm25_lag168",
+    "pm25_rolling_3h",
+    "pm25_rolling_6h",
+    "pm25_rolling_24h",
+    "pm25_rolling_7d",
+    "pm25_rolling_24h_std",
+    "pressure_diff",
+    "target_pm25_t+1",
+    "target_pm25_t+6",
+    "target_pm25_t+24",
+    "target_us_aqi_t+1",
+    "target_us_aqi_t+6",
+    "target_us_aqi_t+24",
+    "target_aqi_class_t+1",
+    "target_aqi_class_t+6",
+    "target_aqi_class_t+24",
+]
+
+
+def write_processed_outputs(aq_all: pd.DataFrame, wt_all: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    full_df = build_dataset(aq_all, wt_all)
+    save_csv(full_df, PROCESSED_DIR / "hanoi_air_ml_ready_full.csv")
+
+    train_df = full_df.dropna(subset=TRAIN_REQUIRED_COLUMNS).reset_index(drop=True)
+    save_csv(train_df, PROCESSED_DIR / "hanoi_air_ml_ready_train.csv")
+
+    return full_df, train_df
+
+
+def build_processed_from_raw() -> tuple[pd.DataFrame, pd.DataFrame]:
+    aq_all = load_raw_csvs(RAW_AIR_DIR)
+    wt_all = load_raw_csvs(RAW_WEATHER_DIR)
+    return write_processed_outputs(aq_all, wt_all)
+
+
+def fetch_raw_and_build_processed() -> tuple[pd.DataFrame, pd.DataFrame]:
     air_parts = []
     weather_parts = []
 
@@ -353,35 +407,25 @@ def main():
     aq_all = pd.concat(air_parts, ignore_index=True).drop_duplicates(subset=["datetime"])
     wt_all = pd.concat(weather_parts, ignore_index=True).drop_duplicates(subset=["datetime"])
 
-    full_df = build_dataset(aq_all, wt_all)
+    return write_processed_outputs(aq_all, wt_all)
 
-    save_csv(full_df, PROCESSED_DIR / "hanoi_air_ml_ready_full.csv")
 
-    train_df = full_df.dropna(
-        subset=[
-            "pm25_lag1",
-            "pm25_lag6",
-            "pm25_lag24",
-            "pm25_lag168",
-            "pm25_rolling_3h",
-            "pm25_rolling_6h",
-            "pm25_rolling_24h",
-            "pm25_rolling_7d",
-            "pm25_rolling_24h_std",
-            "pressure_diff",
-            "target_pm25_t+1",
-            "target_pm25_t+6",
-            "target_pm25_t+24",
-            "target_us_aqi_t+1",
-            "target_us_aqi_t+6",
-            "target_us_aqi_t+24",
-            "target_aqi_class_t+1",
-            "target_aqi_class_t+6",
-            "target_aqi_class_t+24",
-        ]
-    ).reset_index(drop=True)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build Hanoi ML-ready air quality datasets.")
+    parser.add_argument(
+        "--from-raw",
+        action="store_true",
+        help="Build processed datasets from existing data/raw CSV files without fetching APIs.",
+    )
+    return parser.parse_args()
 
-    save_csv(train_df, PROCESSED_DIR / "hanoi_air_ml_ready_train.csv")
+
+def main():
+    args = parse_args()
+    if args.from_raw:
+        full_df, train_df = build_processed_from_raw()
+    else:
+        full_df, train_df = fetch_raw_and_build_processed()
 
     print("\nDone.")
     print(f"Rows full : {len(full_df):,}")
