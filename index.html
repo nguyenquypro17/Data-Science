@@ -3,698 +3,859 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AirSense Hà Nội — Dự đoán Chất lượng Không khí</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <title>AirSense Hà Nội | Dự báo AQI theo giờ</title>
   <style>
     :root {
-      --bg: #0a0f0d;
-      --bg2: #111a15;
-      --bg3: #162019;
-      --accent: #2dff7f;
-      --accent2: #00d4ff;
-      --accent3: #ff6b35;
-      --text: #e8f5ec;
-      --muted: #5a7a62;
-      --border: rgba(45, 255, 127, 0.15);
-      --good: #2dff7f;
-      --moderate: #ffe234;
-      --poor: #ff6b35;
-      --bad: #ff2d55;
-      --hazard: #9b2dff;
+      --bg: #0d1117;
+      --panel: #131a22;
+      --panel-2: #17212b;
+      --line: #263342;
+      --text: #eef4f1;
+      --muted: #91a1ad;
+      --soft: #c8d3dc;
+      --green: #2fbf71;
+      --blue: #4ea5ff;
+      --amber: #f2c94c;
+      --orange: #f2994a;
+      --red: #eb5757;
+      --purple: #9b51e0;
+      --radius: 8px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .25);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { box-sizing: border-box; }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
+      margin: 0;
       min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Background grid */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(45,255,127,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45,255,127,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .glow-orb {
-      position: fixed;
-      width: 600px; height: 600px;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.15;
-    }
-    .glow-orb.g1 { background: var(--accent); top: -200px; left: -200px; }
-    .glow-orb.g2 { background: var(--accent2); bottom: -200px; right: -200px; }
-
-    /* Layout */
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-
-    /* Header */
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 20px 0;
-      position: sticky; top: 0;
-      background: rgba(10,15,13,0.85);
-      backdrop-filter: blur(20px);
-      z-index: 100;
-    }
-    .header-inner {
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .logo {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .logo-icon {
-      width: 36px; height: 36px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-    }
-    .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-    .logo-text span { color: var(--accent); }
-    .badge {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      padding: 4px 10px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--muted);
-    }
-
-    /* Hero */
-    .hero {
-      padding: 80px 0 40px;
-      text-align: center;
-    }
-    .hero-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: var(--accent);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.1s forwards;
-    }
-    .hero h1 {
-      font-size: clamp(36px, 6vw, 64px);
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 16px;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.2s forwards;
-    }
-    .hero h1 .highlight { color: var(--accent); }
-    .hero p {
-      color: var(--muted);
-      font-size: 16px;
-      max-width: 500px;
-      margin: 0 auto;
-      line-height: 1.6;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.3s forwards;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Main grid */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin: 40px 0;
-    }
-    @media (max-width: 700px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Card */
-    .card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s, transform 0.3s;
-    }
-    .card:hover {
-      border-color: rgba(45,255,127,0.3);
-      transform: translateY(-2px);
-    }
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .card:hover::before { opacity: 1; }
-
-    .card-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-    .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
-
-    /* Input form */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .field label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .field input, .field select {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
+      background:
+        linear-gradient(180deg, rgba(78,165,255,.08), transparent 280px),
+        var(--bg);
       color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.2s;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
     }
-    .field input:focus, .field select:focus {
-      border-color: var(--accent);
-    }
-    .field select option { background: var(--bg3); }
 
-    .btn-predict {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      border-radius: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
+    button, input, select { font: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      color: #07120f;
+      font-weight: 900;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--soft);
+      background: rgba(19, 26, 34, .72);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(47,191,113,.12);
+    }
+
+    .refresh-btn {
+      min-height: 36px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--text);
+      color: #0b1117;
+      font-weight: 750;
+      padding: 0 14px;
       cursor: pointer;
-      letter-spacing: 0.5px;
-      transition: opacity 0.2s, transform 0.2s;
-      position: relative;
+    }
+
+    .refresh-btn:disabled {
+      opacity: .62;
+      cursor: wait;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(19, 26, 34, .94);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
-    .btn-predict:hover { opacity: 0.9; transform: scale(1.01); }
-    .btn-predict:active { transform: scale(0.99); }
 
-    /* AQI Result */
-    .aqi-result {
-      text-align: center;
-      padding: 10px 0;
-    }
-    .aqi-circle {
-      width: 140px; height: 140px;
-      border-radius: 50%;
-      margin: 0 auto 20px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      border: 3px solid;
-      position: relative;
-      transition: all 0.5s ease;
-    }
-    .aqi-circle::before {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      border: 1px solid currentColor;
-      opacity: 0.2;
-    }
-    .aqi-value {
-      font-family: 'Space Mono', monospace;
-      font-size: 36px;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .aqi-unit {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      opacity: 0.6;
-      margin-top: 4px;
-    }
-    .aqi-label {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-    .aqi-desc {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
+    .panel.pad { padding: 20px; }
 
-    /* Levels legend */
-    .levels {
+    .panel-head {
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
-    .level-chip {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 10px;
-      border-radius: 20px;
-      border: 1px solid;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .level-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-    /* Model comparison */
-    .model-card { grid-column: 1 / -1; }
-    .model-table { width: 100%; border-collapse: collapse; }
-    .model-table th {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .model-table td {
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .model-table tr:last-child td { border-bottom: none; }
-    .model-table tr:hover td { background: rgba(45,255,127,0.03); }
-    .best-row td { color: var(--accent); }
-
-    .bar-wrap { display: flex; align-items: center; gap: 10px; }
-    .bar {
-      height: 6px; border-radius: 3px;
-      background: var(--accent);
-      transition: width 1s ease;
-    }
-    .bar-val { font-size: 11px; min-width: 36px; }
-
-    /* Data sources */
-    .sources-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      justify-content: space-between;
       gap: 12px;
-    }
-    @media (max-width: 700px) {
-      .sources-grid { grid-template-columns: 1fr; }
-    }
-    .source-item {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-    }
-    .source-icon { font-size: 24px; margin-bottom: 8px; }
-    .source-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-    .source-info {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
+      align-items: start;
+      margin-bottom: 18px;
     }
 
-    /* Stats bar */
-    .stats-row {
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    h2, h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h2 { font-size: 24px; }
+    h3 { font-size: 17px; }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .current-aqi {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin: 0 0 40px;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      align-items: center;
+      min-height: 210px;
     }
-    @media (max-width: 600px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
+
+    .gauge {
+      --c: var(--green);
+      width: 172px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--c);
+      background:
+        radial-gradient(circle at center, var(--panel) 0 58%, transparent 59%),
+        conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255,255,255,.08) 0);
+      position: relative;
     }
-    .stat-box {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
+
+    .gauge::after {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .gauge-value {
       text-align: center;
+      z-index: 1;
     }
-    .stat-num {
-      font-family: 'Space Mono', monospace;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent);
+
+    .gauge-value strong {
+      display: block;
+      font-size: 44px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gauge-value span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .condition-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .condition {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .condition span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
       margin-bottom: 4px;
     }
-    .stat-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
+
+    .condition strong {
+      font-size: 17px;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* Pulse animation for live indicator */
-    .live-dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      margin-right: 6px;
-      animation: pulse 2s infinite;
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
+
+    .forecast-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-2);
+      padding: 16px;
+      min-height: 198px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .forecast-card .horizon {
+      color: var(--muted);
+      font-weight: 750;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .forecast-card .aqi {
+      margin-top: 10px;
+      font-size: 38px;
+      line-height: 1;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .forecast-card .band {
+      margin: 12px 0;
+      height: 7px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--amber), var(--orange), var(--red), var(--purple));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .forecast-card .band::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      width: 3px;
+      height: 15px;
+      left: calc(var(--p) * 1%);
+      background: white;
+      border-radius: 999px;
+    }
+
+    .forecast-card .model-line {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .forecast-card .category {
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .chart-wrap {
+      height: 285px;
+      padding: 18px;
+      border-top: 1px solid var(--line);
+      background: #101720;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .health-panel {
+      border-left: 4px solid var(--green);
+    }
+
+    .health-panel p {
+      margin: 10px 0 0;
+      color: var(--soft);
+      line-height: 1.55;
+    }
+
+    .model-table-wrap {
+      overflow-x: auto;
+      border-top: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      background: #101720;
+    }
+
+    td {
+      color: var(--soft);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .best-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(47,191,113,.12);
+      color: var(--green);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .error {
+      display: none;
+      margin-bottom: 16px;
+      border: 1px solid rgba(235,87,87,.45);
+      background: rgba(235,87,87,.12);
+      color: #ffd3d3;
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      line-height: 1.45;
+    }
+
+    .skeleton {
+      color: var(--muted);
     }
 
     footer {
-      border-top: 1px solid var(--border);
-      padding: 24px 0;
-      text-align: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
+      margin-top: 18px;
       color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 920px) {
+      .layout,
+      .current-aqi,
+      .forecast-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions { justify-content: flex-start; }
+      .gauge { width: 150px; }
+    }
+
+    @media (max-width: 560px) {
+      .condition-list { grid-template-columns: 1fr; }
+      .shell { width: min(100% - 20px, 1180px); }
+      .panel.pad { padding: 16px; }
+      h2 { font-size: 21px; }
     }
   </style>
 </head>
 <body>
-
-<div class="glow-orb g1"></div>
-<div class="glow-orb g2"></div>
-
-<!-- HEADER -->
-<header>
-  <div class="container header-inner">
-    <div class="logo">
-      <div class="logo-icon">🌿</div>
-      <div class="logo-text"><span>Air</span>Sense</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <span class="live-dot"></span>
-      <span class="badge">HÀ NỘI · REAL-TIME</span>
-    </div>
-  </div>
-</header>
-
-<!-- HERO -->
-<div class="hero">
-  <div class="container">
-    <div class="hero-label">▸ Data Science Project — Nhóm 7</div>
-    <h1>Dự đoán<br/><span class="highlight">Chất lượng Không khí</span><br/>Hà Nội</h1>
-    <p>Tích hợp dữ liệu từ AQI, thời tiết và giao thông để dự đoán mức độ ô nhiễm bằng Machine Learning.</p>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-box">
-      <div class="stat-num">5</div>
-      <div class="stat-label">Mô hình ML</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">3</div>
-      <div class="stat-label">Nguồn dữ liệu</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">92%</div>
-      <div class="stat-label">Best Accuracy</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">5</div>
-      <div class="stat-label">Mức AQI</div>
-    </div>
-  </div>
-
-  <!-- MAIN GRID -->
-  <div class="main-grid">
-
-    <!-- INPUT CARD -->
-    <div class="card">
-      <div class="card-label">▸ nhập dữ liệu đầu vào</div>
-      <h2>Thông số môi trường</h2>
-      <div class="form-grid">
-        <div class="field">
-          <label>PM2.5 (μg/m³)</label>
-          <input type="number" id="pm25" placeholder="35.2" value="35.2"/>
-        </div>
-        <div class="field">
-          <label>PM10 (μg/m³)</label>
-          <input type="number" id="pm10" placeholder="65.0" value="65.0"/>
-        </div>
-        <div class="field">
-          <label>Nhiệt độ (°C)</label>
-          <input type="number" id="temp" placeholder="28.5" value="28.5"/>
-        </div>
-        <div class="field">
-          <label>Độ ẩm (%)</label>
-          <input type="number" id="humidity" placeholder="75" value="75"/>
-        </div>
-        <div class="field">
-          <label>Tốc độ gió (m/s)</label>
-          <input type="number" id="wind" placeholder="2.3" value="2.3"/>
-        </div>
-        <div class="field">
-          <label>Mật độ giao thông</label>
-          <select id="traffic">
-            <option value="low">Thấp</option>
-            <option value="medium" selected>Trung bình</option>
-            <option value="high">Cao</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Giờ trong ngày</label>
-          <input type="number" id="hour" placeholder="8" value="8" min="0" max="23"/>
-        </div>
-        <div class="field">
-          <label>Mô hình dự đoán</label>
-          <select id="model">
-            <option value="rf">Random Forest</option>
-            <option value="xgb">XGBoost</option>
-            <option value="svm">SVM</option>
-            <option value="knn">KNN</option>
-            <option value="dt">Decision Tree</option>
-          </select>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">AQ</div>
+        <div>
+          <h1>AirSense Hà Nội</h1>
+          <p>Dự báo US AQI theo giờ từ dữ liệu API thật và model đã huấn luyện</p>
         </div>
       </div>
-      <button class="btn-predict" onclick="predict()">🔍 Dự đoán AQI</button>
+      <div class="actions">
+        <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">Đang chờ dữ liệu</span></div>
+        <button class="refresh-btn" id="refreshBtn" type="button">Làm mới</button>
+      </div>
+    </header>
 
-      <!-- Levels legend -->
-      <div class="levels" style="margin-top:20px;">
-        <div class="level-chip" style="border-color:#2dff7f;color:#2dff7f;">
-          <div class="level-dot" style="background:#2dff7f;"></div>Tốt
+    <div class="error" id="errorBox"></div>
+
+    <section class="layout">
+      <div class="panel pad">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Hiện tại</p>
+            <h2>Chất lượng không khí Hà Nội</h2>
+          </div>
+          <div class="muted" id="currentTime">--</div>
         </div>
-        <div class="level-chip" style="border-color:#ffe234;color:#ffe234;">
-          <div class="level-dot" style="background:#ffe234;"></div>Trung bình
-        </div>
-        <div class="level-chip" style="border-color:#ff6b35;color:#ff6b35;">
-          <div class="level-dot" style="background:#ff6b35;"></div>Kém
-        </div>
-        <div class="level-chip" style="border-color:#ff2d55;color:#ff2d55;">
-          <div class="level-dot" style="background:#ff2d55;"></div>Xấu
-        </div>
-        <div class="level-chip" style="border-color:#9b2dff;color:#9b2dff;">
-          <div class="level-dot" style="background:#9b2dff;"></div>Nguy hại
+
+        <div class="current-aqi">
+          <div class="gauge" id="aqiGauge" style="--p: 0; --c: var(--green);">
+            <div class="gauge-value">
+              <strong id="currentAqi">--</strong>
+              <span>US AQI</span>
+            </div>
+          </div>
+
+          <div>
+            <h3 id="currentCategory" style="color: var(--green);">Đang tải</h3>
+            <p class="muted" id="currentSummary">Kết nối backend để lấy dữ liệu Open-Meteo và tạo feature forecast.</p>
+            <div class="condition-list">
+              <div class="condition"><span>PM2.5</span><strong id="pm25">--</strong></div>
+              <div class="condition"><span>PM10</span><strong id="pm10">--</strong></div>
+              <div class="condition"><span>Nhiệt độ</span><strong id="temp">--</strong></div>
+              <div class="condition"><span>Gió</span><strong id="wind">--</strong></div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- RESULT CARD -->
-    <div class="card">
-      <div class="card-label">▸ kết quả dự đoán</div>
-      <h2>Chỉ số AQI</h2>
-      <div class="aqi-result">
-        <div class="aqi-circle" id="aqiCircle" style="border-color:#2dff7f;color:#2dff7f;">
-          <div class="aqi-value" id="aqiValue">72</div>
-          <div class="aqi-unit">AQI</div>
-        </div>
-        <div class="aqi-label" id="aqiLabel" style="color:#2dff7f;">Trung bình</div>
-        <div class="aqi-desc" id="aqiDesc">Chất lượng không khí có thể chấp nhận được.<br/>Tuy nhiên một số chất ô nhiễm có thể ảnh hưởng<br/>đến nhóm người nhạy cảm.</div>
-      </div>
-
-      <!-- Mini metrics -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;">
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:4px;">MÔ HÌNH</div>
-          <div style="font-size:14px;font-weight:600;" id="usedModel">Random Forest</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:4px;">ĐỘ CHÍNH XÁC</div>
-          <div style="font-size:14px;font-weight:600;color:var(--accent);" id="modelAcc">92.3%</div>
+      <div class="panel pad health-panel" id="healthPanel">
+        <p class="eyebrow">Cảnh báo sức khỏe</p>
+        <h2 id="healthTitle">Đang đánh giá</h2>
+        <p id="healthAdvice">Hệ thống sẽ dùng AQI hiện tại và các mốc dự báo để đưa ra khuyến nghị sức khỏe phù hợp.</p>
+        <div class="condition-list">
+          <div class="condition"><span>Nguồn AQI</span><strong>Open-Meteo</strong></div>
+          <div class="condition"><span>Dữ liệu</span><strong>Air + Weather</strong></div>
+          <div class="condition"><span>Feature</span><strong>168h history</strong></div>
+          <div class="condition"><span>Mục tiêu</span><strong>t+1 / t+6 / t+24</strong></div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- MODEL COMPARISON TABLE -->
-    <div class="card model-card">
-      <div class="card-label">▸ so sánh mô hình machine learning</div>
-      <h2>Hiệu suất các mô hình</h2>
-      <table class="model-table">
-        <thead>
-          <tr>
-            <th>Mô hình</th>
-            <th>Accuracy</th>
-            <th>F1-Score</th>
-            <th>Precision</th>
-            <th>Recall</th>
-            <th>Bar</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="best-row">
-            <td>⭐ Random Forest</td>
-            <td>92.3%</td>
-            <td>0.91</td>
-            <td>0.92</td>
-            <td>0.91</td>
-            <td><div class="bar-wrap"><div class="bar" style="width:92px;"></div></div></td>
-          </tr>
-          <tr>
-            <td>XGBoost</td>
-            <td>90.1%</td>
-            <td>0.89</td>
-            <td>0.90</td>
-            <td>0.89</td>
-            <td><div class="bar-wrap"><div class="bar" style="width:90px;background:#00d4ff;"></div></div></td>
-          </tr>
-          <tr>
-            <td>SVM</td>
-            <td>85.7%</td>
-            <td>0.84</td>
-            <td>0.86</td>
-            <td>0.84</td>
-            <td><div class="bar-wrap"><div class="bar" style="width:86px;background:#ffe234;"></div></div></td>
-          </tr>
-          <tr>
-            <td>KNN</td>
-            <td>82.4%</td>
-            <td>0.81</td>
-            <td>0.83</td>
-            <td>0.81</td>
-            <td><div class="bar-wrap"><div class="bar" style="width:82px;background:#ff6b35;"></div></div></td>
-          </tr>
-          <tr>
-            <td>Decision Tree</td>
-            <td>78.9%</td>
-            <td>0.78</td>
-            <td>0.79</td>
-            <td>0.78</td>
-            <td><div class="bar-wrap"><div class="bar" style="width:79px;background:#ff2d55;"></div></div></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- DATA SOURCES -->
-    <div class="card model-card">
-      <div class="card-label">▸ nguồn dữ liệu</div>
-      <h2>Tích hợp đa nguồn</h2>
-      <div class="sources-grid">
-        <div class="source-item">
-          <div class="source-icon">💨</div>
-          <div class="source-name">IQAir / PAM Air</div>
-          <div class="source-info">AQI · PM2.5 · PM10<br/>Cập nhật mỗi giờ</div>
+    <section class="panel pad" style="margin-top:18px;">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Dự báo</p>
+          <h2>Forecast AQI theo horizon</h2>
         </div>
-        <div class="source-item">
-          <div class="source-icon">🌤</div>
-          <div class="source-name">OpenWeatherMap</div>
-          <div class="source-info">Nhiệt độ · Độ ẩm<br/>Tốc độ gió · Áp suất</div>
-        </div>
-        <div class="source-item">
-          <div class="source-icon">🚗</div>
-          <div class="source-name">Google Maps API</div>
-          <div class="source-info">Mật độ giao thông<br/>Theo giờ · Theo khu vực</div>
-        </div>
+        <div class="muted">Khoảng sai số hiển thị theo RMSE test set của model tốt nhất</div>
       </div>
-    </div>
+      <div class="forecast-grid" id="forecastGrid">
+        <div class="forecast-card skeleton">Đang tải forecast t+1h...</div>
+        <div class="forecast-card skeleton">Đang tải forecast t+6h...</div>
+        <div class="forecast-card skeleton">Đang tải forecast t+24h...</div>
+      </div>
+    </section>
 
-  </div>
-</div>
+    <section class="panel" style="margin-top:18px;">
+      <div class="panel-head" style="padding:20px 20px 0;">
+        <div>
+          <p class="eyebrow">Xu hướng gần đây</p>
+          <h2>AQI 72 giờ gần nhất và dự báo 24h</h2>
+        </div>
+        <div class="muted">Đường xanh là lịch sử đến mốc Now; vùng bên phải là Forecast của model</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="aqiChart" width="1100" height="300"></canvas>
+      </div>
+    </section>
 
-<footer>
-  <div class="container">
-    AirSense Hà Nội · Data Science Project · Nhóm 7 · 2024 — Pandas · Scikit-learn · Matplotlib
-  </div>
-</footer>
+    <section class="panel" style="margin-top:18px;">
+      <div class="panel-head" style="padding:20px 20px 0;">
+        <div>
+          <p class="eyebrow">Model performance</p>
+          <h2>So sánh mô hình đã train</h2>
+        </div>
+        <div class="muted">Đọc trực tiếp từ outputs/gijon_aqi_hourly/reports</div>
+      </div>
+      <div class="model-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Horizon</th>
+              <th>Model</th>
+              <th>RMSE</th>
+              <th>MAE</th>
+              <th>R2</th>
+              <th>Class Accuracy</th>
+              <th>Macro F1</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody id="metricsBody">
+            <tr><td colspan="8" class="skeleton">Đang tải metrics...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-<script>
-  const modelData = {
-    rf:  { name: 'Random Forest', acc: '92.3%' },
-    xgb: { name: 'XGBoost',       acc: '90.1%' },
-    svm: { name: 'SVM',           acc: '85.7%' },
-    knn: { name: 'KNN',           acc: '82.4%' },
-    dt:  { name: 'Decision Tree', acc: '78.9%' },
-  };
+    <footer>
+      <span>AirSense Hà Nội · FastAPI · Scikit-learn · Open-Meteo</span>
+      <span id="sourceNote">Model được train riêng cho Hà Nội.</span>
+    </footer>
+  </main>
 
-  const levels = [
-    { max: 50,  label: 'Tốt',      color: '#2dff7f', desc: 'Chất lượng không khí tốt.\nKhông có rủi ro sức khỏe.' },
-    { max: 100, label: 'Trung bình', color: '#ffe234', desc: 'Chất lượng không khí có thể chấp nhận được.\nTuy nhiên một số chất ô nhiễm có thể ảnh hưởng\nđến nhóm người nhạy cảm.' },
-    { max: 150, label: 'Kém',      color: '#ff6b35', desc: 'Nhóm nhạy cảm có thể bị ảnh hưởng sức khỏe.\nNgười bình thường ít bị ảnh hưởng hơn.' },
-    { max: 200, label: 'Xấu',      color: '#ff2d55', desc: 'Mọi người có thể bị ảnh hưởng sức khỏe.\nNhóm nhạy cảm bị ảnh hưởng nghiêm trọng hơn.' },
-    { max: 999, label: 'Nguy hại', color: '#9b2dff', desc: 'Cảnh báo sức khỏe: Mọi người\nđều có thể bị ảnh hưởng nghiêm trọng.' },
-  ];
+  <script>
+    const state = {
+      forecast: null,
+      metrics: null,
+    };
 
-  function predict() {
-    const pm25     = parseFloat(document.getElementById('pm25').value) || 0;
-    const pm10     = parseFloat(document.getElementById('pm10').value) || 0;
-    const temp     = parseFloat(document.getElementById('temp').value) || 0;
-    const humidity = parseFloat(document.getElementById('humidity').value) || 0;
-    const wind     = parseFloat(document.getElementById('wind').value) || 0;
-    const traffic  = document.getElementById('traffic').value;
-    const hour     = parseInt(document.getElementById('hour').value) || 0;
-    const model    = document.getElementById('model').value;
+    const $ = (id) => document.getElementById(id);
 
-    // Simulated AQI calculation
-    let trafficFactor = traffic === 'low' ? 0.8 : traffic === 'medium' ? 1.0 : 1.3;
-    let peakHour = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19) ? 1.2 : 1.0;
-    let windFactor = Math.max(0.5, 1 - wind * 0.05);
-    let aqi = Math.round((pm25 * 1.5 + pm10 * 0.8 + humidity * 0.3 - temp * 0.2) * trafficFactor * peakHour * windFactor);
-    aqi = Math.max(10, Math.min(aqi, 350));
+    const fmtNumber = (value, digits = 1) =>
+      Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "--";
 
-    const lvl = levels.find(l => aqi <= l.max);
+    function fmtTime(iso) {
+      if (!iso) return "--";
+      return new Intl.DateTimeFormat("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(iso));
+    }
 
-    document.getElementById('aqiValue').textContent = aqi;
-    document.getElementById('aqiLabel').textContent = lvl.label;
-    document.getElementById('aqiLabel').style.color = lvl.color;
-    document.getElementById('aqiDesc').innerHTML = lvl.desc.replace(/\n/g, '<br/>');
+    function aqiPosition(aqi) {
+      return Math.max(0, Math.min(100, (Number(aqi) / 300) * 100));
+    }
 
-    const circle = document.getElementById('aqiCircle');
-    circle.style.borderColor = lvl.color;
-    circle.style.color = lvl.color;
+    function setStatus(text, ok = true) {
+      $("statusText").textContent = text;
+      $("statusDot").style.background = ok ? "var(--green)" : "var(--red)";
+      $("statusDot").style.boxShadow = ok ? "0 0 0 4px rgba(47,191,113,.12)" : "0 0 0 4px rgba(235,87,87,.14)";
+    }
 
-    const md = modelData[model];
-    document.getElementById('usedModel').textContent = md.name;
-    document.getElementById('modelAcc').textContent = md.acc;
-  }
-</script>
+    function showError(message) {
+      const box = $("errorBox");
+      box.style.display = "block";
+      box.innerHTML = message;
+      setStatus("Lỗi kết nối", false);
+    }
+
+    function clearError() {
+      $("errorBox").style.display = "none";
+      $("errorBox").textContent = "";
+    }
+
+    function renderCurrent(data) {
+      const current = data.current;
+      const category = current.category;
+      $("currentTime").textContent = fmtTime(current.time_local);
+      $("currentAqi").textContent = fmtNumber(current.us_aqi, 0);
+      $("currentCategory").textContent = category.label;
+      $("currentCategory").style.color = category.color;
+      $("currentSummary").textContent = category.summary;
+      $("pm25").textContent = `${fmtNumber(current.pm25, 1)} µg/m³`;
+      $("pm10").textContent = `${fmtNumber(current.pm10, 1)} µg/m³`;
+      $("temp").textContent = `${fmtNumber(current.temperature, 1)} °C`;
+      $("wind").textContent = `${fmtNumber(current.wind_speed, 1)} m/s`;
+
+      const gauge = $("aqiGauge");
+      gauge.style.setProperty("--p", aqiPosition(current.us_aqi));
+      gauge.style.setProperty("--c", category.color);
+
+      const worst = [...data.forecasts, { category, aqi: current.us_aqi }]
+        .sort((a, b) => Number(b.aqi) - Number(a.aqi))[0];
+      $("healthPanel").style.borderLeftColor = worst.category.color;
+      $("healthTitle").textContent = worst.category.label;
+      $("healthTitle").style.color = worst.category.color;
+      $("healthAdvice").textContent = worst.category.advice;
+    }
+
+    function renderForecastCards(forecasts) {
+      $("forecastGrid").innerHTML = forecasts.map((item) => {
+        const c = item.category;
+        return `
+          <article class="forecast-card">
+            <div>
+              <div class="horizon">Sau ${item.horizon_hours} giờ · ${fmtTime(item.target_time_local)}</div>
+              <div class="aqi" style="color:${c.color};">${fmtNumber(item.aqi, 0)}</div>
+              <div class="category" style="color:${c.color};">${c.label}</div>
+              <div class="band" style="--p:${aqiPosition(item.aqi)};"></div>
+            </div>
+            <div class="model-line">
+              Model: <strong>${item.model}</strong><br/>
+              Khoảng dự kiến: ${fmtNumber(item.aqi_low, 0)}-${fmtNumber(item.aqi_high, 0)} AQI<br/>
+              RMSE: ${fmtNumber(item.metrics.rmse, 2)} · R2: ${fmtNumber(item.metrics.r2, 3)}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function drawChart(data) {
+      const canvas = $("aqiChart");
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      const pad = { left: 48, right: 26, top: 22, bottom: 48 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+      const obs = (data.recent_observations || [])
+        .map((d) => ({ ...d, ts: new Date(d.time_local).getTime() }))
+        .filter((d) => Number.isFinite(d.ts) && Number.isFinite(Number(d.us_aqi)));
+      const forecasts = (data.forecasts || [])
+        .map((d) => ({ ...d, ts: new Date(d.target_time_local).getTime() }))
+        .filter((d) => Number.isFinite(d.ts) && Number.isFinite(Number(d.aqi)))
+        .sort((a, b) => a.ts - b.ts);
+
+      if (obs.length < 2 || forecasts.length === 0) return;
+
+      const currentTs = new Date(data.current.time_local).getTime() || obs[obs.length - 1].ts;
+      const firstTs = obs[0].ts;
+      const lastForecastTs = Math.max(...forecasts.map((d) => d.ts));
+      const oneHour = 60 * 60 * 1000;
+      const xMin = firstTs;
+      const xMax = lastForecastTs + oneHour;
+      const maxAqi = Math.max(
+        160,
+        Number(data.current.us_aqi || 0),
+        ...obs.map((d) => Number(d.us_aqi)),
+        ...forecasts.map((d) => Number(d.aqi))
+      ) + 18;
+      const minAqi = 0;
+
+      const x = (ts) => pad.left + ((ts - xMin) / Math.max(1, xMax - xMin)) * plotW;
+      const y = (value) => pad.top + plotH - ((value - minAqi) / (maxAqi - minAqi)) * plotH;
+      const nowX = x(currentTs);
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#101720";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.fillStyle = "rgba(78, 165, 255, .07)";
+      ctx.fillRect(nowX, pad.top, w - pad.right - nowX, plotH);
+      ctx.fillStyle = "rgba(78, 165, 255, .85)";
+      ctx.font = "700 11px system-ui";
+      ctx.textAlign = "right";
+      ctx.fillText("FORECAST", w - pad.right, pad.top + 14);
+
+      ctx.strokeStyle = "rgba(255,255,255,.08)";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#91a1ad";
+      ctx.font = "12px system-ui";
+      ctx.textAlign = "left";
+      [50, 100, 150, 200, 300].forEach((level) => {
+        if (level > maxAqi) return;
+        const yy = y(level);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yy);
+        ctx.lineTo(w - pad.right, yy);
+        ctx.stroke();
+        ctx.fillText(String(level), 8, yy + 4);
+      });
+
+      const tickCount = w > 980 ? 8 : w > 700 ? 6 : 4;
+      const tickFormatter = new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      ctx.textAlign = "center";
+      ctx.font = "11px system-ui";
+      ctx.fillStyle = "#91a1ad";
+      for (let i = 0; i <= tickCount; i += 1) {
+        const ts = xMin + ((xMax - xMin) * i) / tickCount;
+        const xx = x(ts);
+        ctx.strokeStyle = "rgba(255,255,255,.045)";
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+        ctx.fillText(tickFormatter.format(new Date(ts)), xx, h - 16);
+      }
+
+      const history = obs.filter((point) => point.ts <= currentTs);
+      if (history.length > 1) {
+        ctx.beginPath();
+        history.forEach((point, idx) => {
+          const xx = x(point.ts);
+          const yy = y(Number(point.us_aqi));
+          if (idx === 0) ctx.moveTo(xx, yy);
+          else ctx.lineTo(xx, yy);
+        });
+        ctx.strokeStyle = "#4ea5ff";
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+      }
+
+      const currentAqi = Number(data.current.us_aqi);
+      ctx.beginPath();
+      ctx.arc(nowX, y(currentAqi), 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#4ea5ff";
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(238,244,241,.72)";
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(nowX, pad.top);
+      ctx.lineTo(nowX, pad.top + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#eef4f1";
+      ctx.font = "800 11px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("NOW", nowX, pad.top - 7);
+
+      ctx.strokeStyle = "rgba(238,244,241,.45)";
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(nowX, y(currentAqi));
+      forecasts.forEach((item) => {
+        ctx.lineTo(x(item.ts), y(Number(item.aqi)));
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      forecasts.forEach((item) => {
+        const xx = x(item.ts);
+        const yy = y(Number(item.aqi));
+        ctx.beginPath();
+        ctx.arc(xx, yy, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = item.category.color;
+        ctx.fill();
+        ctx.strokeStyle = "#101720";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#eef4f1";
+        ctx.font = "800 11px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(`+${item.horizon_hours}h`, xx, yy - 12);
+      });
+
+      ctx.fillStyle = "#91a1ad";
+      ctx.font = "12px system-ui";
+      ctx.textAlign = "left";
+      ctx.fillText("Lịch sử AQI", pad.left, pad.top + 14);
+    }
+
+    function renderMetrics(payload) {
+      const bestByHorizon = payload.best_models || {};
+      const rows = payload.metrics || [];
+      $("metricsBody").innerHTML = rows.map((row) => {
+        const best = bestByHorizon[String(row.horizon)];
+        const isBest = best && best.model_name === row.model_name;
+        return `
+          <tr>
+            <td>t+${row.horizon}h</td>
+            <td>${isBest ? `<span class="best-tag">${row.model_name}</span>` : row.model_name}</td>
+            <td>${fmtNumber(row.rmse, 2)}</td>
+            <td>${fmtNumber(row.mae, 2)}</td>
+            <td>${fmtNumber(row.r2, 3)}</td>
+            <td>${fmtNumber(row.class_accuracy * 100, 1)}%</td>
+            <td>${fmtNumber(row.class_macro_f1, 3)}</td>
+            <td>${row.notes || ""}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function loadForecast() {
+      $("refreshBtn").disabled = true;
+      setStatus("Đang lấy API thật", true);
+      clearError();
+      try {
+        const [forecastRes, metricsRes] = await Promise.all([
+          fetch("/api/forecast"),
+          fetch("/api/metrics"),
+        ]);
+        if (!forecastRes.ok) throw new Error(await forecastRes.text());
+        if (!metricsRes.ok) throw new Error(await metricsRes.text());
+
+        state.forecast = await forecastRes.json();
+        state.metrics = await metricsRes.json();
+        renderCurrent(state.forecast);
+        renderForecastCards(state.forecast.forecasts);
+        drawChart(state.forecast);
+        renderMetrics(state.metrics);
+        setStatus("Đã cập nhật", true);
+        $("sourceNote").textContent = `${state.forecast.data_source.air_quality} · ${state.forecast.data_source.weather}`;
+      } catch (err) {
+        showError(`
+          Không tải được dự báo. Hãy chắc rằng backend đang chạy bằng
+          <strong>uvicorn app.main:app --reload --host 127.0.0.1 --port 8000</strong>.
+          <br/>Chi tiết: ${String(err.message || err)}
+        `);
+      } finally {
+        $("refreshBtn").disabled = false;
+      }
+    }
+
+    $("refreshBtn").addEventListener("click", loadForecast);
+    window.addEventListener("resize", () => state.forecast && drawChart(state.forecast));
+    loadForecast();
+  </script>
 </body>
 </html>
