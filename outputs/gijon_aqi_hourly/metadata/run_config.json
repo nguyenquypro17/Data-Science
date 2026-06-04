@@ -1,0 +1,32 @@
+{
+  "data": "data\\processed\\hanoi_air_ml_ready_train.csv",
+  "output_dir": "outputs\\gijon_aqi_hourly",
+  "horizons": [
+    1,
+    6,
+    24
+  ],
+  "target": "us_aqi",
+  "timezone": "Asia/Bangkok",
+  "train_ratio": 0.7,
+  "val_ratio": 0.1,
+  "test_ratio": 0.2,
+  "include_weather": true,
+  "include_time_features": true,
+  "include_baseline": true,
+  "skip_arima": false,
+  "skip_varma": false,
+  "skip_mlp": false,
+  "skip_svmr": false,
+  "skip_mars": false,
+  "allow_skip_mars_if_missing": false,
+  "arima_max_p": 3,
+  "arima_max_d": 1,
+  "arima_max_q": 3,
+  "varma_max_p": 2,
+  "varma_max_q": 1,
+  "varma_use_weather_exog": false,
+  "svmr_train_limit": 0,
+  "mlp_max_iter": 500,
+  "n_jobs": 1
+}
