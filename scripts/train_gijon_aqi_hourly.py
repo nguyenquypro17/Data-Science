@@ -228,20 +228,15 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     day_of_week = dt.dt.dayofweek
     month = dt.dt.month
 
-    time_features = pd.DataFrame(
-        {
-            "hour_sin": np.sin(2 * np.pi * hour / 24),
-            "hour_cos": np.cos(2 * np.pi * hour / 24),
-            "day_of_week_sin": np.sin(2 * np.pi * day_of_week / 7),
-            "day_of_week_cos": np.cos(2 * np.pi * day_of_week / 7),
-            "month_sin": np.sin(2 * np.pi * month / 12),
-            "month_cos": np.cos(2 * np.pi * month / 12),
-            "is_weekend": day_of_week.isin([5, 6]).astype(int),
-            "is_dry_season": month.isin([11, 12, 1, 2, 3, 4]).astype(int),
-        },
-        index=out.index,
-    )
-    return pd.concat([out, time_features], axis=1).copy()
+    out["hour_sin"] = np.sin(2 * np.pi * hour / 24)
+    out["hour_cos"] = np.cos(2 * np.pi * hour / 24)
+    out["day_of_week_sin"] = np.sin(2 * np.pi * day_of_week / 7)
+    out["day_of_week_cos"] = np.cos(2 * np.pi * day_of_week / 7)
+    out["month_sin"] = np.sin(2 * np.pi * month / 12)
+    out["month_cos"] = np.cos(2 * np.pi * month / 12)
+    out["is_weekend"] = day_of_week.isin([5, 6]).astype(int)
+    out["is_dry_season"] = month.isin([11, 12, 1, 2, 3, 4]).astype(int)
+    return out
 
 
 def add_lag_and_rolling_features(df: pd.DataFrame) -> pd.DataFrame:

@@ -299,14 +299,14 @@ def build_inference_feature_row(frame: pd.DataFrame, feature_cols: list[str]) ->
     return ready.iloc[-1]
 
 
-def prediction_frame_from_row(row: pd.Series, feature_cols: list[str]) -> pd.DataFrame:
+def prediction_frame_from_row(row: pd.Series, feature_cols: list[str]) -> np.ndarray:
     values: list[float] = []
     for col in feature_cols:
         value = row[col]
         if isinstance(value, pd.Series):
             value = value.iloc[0]
         values.append(float(value))
-    return pd.DataFrame([values], columns=feature_cols)
+    return np.array([values])
 
 
 def category_payload(aqi: float) -> dict[str, str]:
