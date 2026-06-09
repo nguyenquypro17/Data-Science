@@ -1,0 +1,26 @@
+{
+  "1": {
+    "model_name": "MARS",
+    "rmse": 2.278266177038876,
+    "mae": 1.2228851958288984,
+    "r2": 0.9963543757984393,
+    "model_path": "outputs\\gijon_aqi_hourly\\models\\horizon_01_mars.joblib",
+    "metadata_path": "outputs\\gijon_aqi_hourly\\metadata\\horizon_01_mars.json"
+  },
+  "6": {
+    "model_name": "SVMR",
+    "rmse": 7.423462899874788,
+    "mae": 4.891360568528005,
+    "r2": 0.9612823920258555,
+    "model_path": "outputs\\gijon_aqi_hourly\\models\\horizon_06_svmr.joblib",
+    "metadata_path": "outputs\\gijon_aqi_hourly\\metadata\\horizon_06_svmr.json"
+  },
+  "24": {
+    "model_name": "SVMR",
+    "rmse": 21.945152406464807,
+    "mae": 17.108563593914198,
+    "r2": 0.6613543069924298,
+    "model_path": "outputs\\gijon_aqi_hourly\\models\\horizon_24_svmr.joblib",
+    "metadata_path": "outputs\\gijon_aqi_hourly\\metadata\\horizon_24_svmr.json"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "model": "ARIMA",
+  "horizon": 24,
+  "target": "us_aqi",
+  "order": [
+    3,
+    0,
+    3
+  ],
+  "selection": "minimum AIC over configured p,d,q grid",
+  "grid": {
+    "max_p": 3,
+    "max_d": 1,
+    "max_q": 3
+  },
+  "notes": "Univariate ARIMA using us_aqi only, evaluated with rolling-origin forecasts."
+}
