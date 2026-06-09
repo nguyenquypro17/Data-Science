@@ -1,0 +1,520 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ── theme ──────────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamercolor{palette primary}{bg=blue!70!black,fg=white}
+\setbeamercolor{palette secondary}{bg=blue!60!black,fg=white}
+\setbeamercolor{palette tertiary}{bg=blue!50!black,fg=white}
+\setbeamercolor{palette quaternary}{bg=blue!40!black,fg=white}
+\setbeamercolor{structure}{fg=blue!70!black}
+\setbeamercolor{block title}{bg=blue!70!black,fg=white}
+\setbeamercolor{block body}{bg=blue!5!white}
+\setbeamercolor{alerted text}{fg=orange!80!black}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+
+% ── packages ───────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{listings}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{tabularx}
+
+% ── custom colors ──────────────────────────────────────
+\definecolor{cgood}{HTML}{2fbf71}
+\definecolor{cmoderate}{HTML}{f2c94c}
+\definecolor{csensitive}{HTML}{f2994a}
+\definecolor{cunhealthy}{HTML}{eb5757}
+\definecolor{cvery}{HTML}{9b51e0}
+\definecolor{chazard}{HTML}{7b1f4d}
+\definecolor{cpanel}{HTML}{131a22}
+\definecolor{cblue}{HTML}{4ea5ff}
+\definecolor{cbg}{HTML}{0d1117}
+
+% ── helpers ────────────────────────────────────────────
+\newcommand{\good}[1]{{\color{cgood}\textbf{#1}}}
+\newcommand{\warn}[1]{{\color{cmoderate}\textbf{#1}}}
+\newcommand{\bad}[1]{{\color{cunhealthy}\textbf{#1}}}
+\newcommand{\info}[1]{{\color{cblue}\textbf{#1}}}
+
+% ── metadata ───────────────────────────────────────────
+\title[AirSense Hà Nội]{AirSense Hà Nội\\Dự báo Chất lượng Không khí theo Giờ}
+\subtitle{Hệ thống dự báo AQI với horizon +1h · +6h · +24h}
+\author{Nhóm Data Science}
+\institute{Data Science Project · 2026}
+\date{}
+
+% ═══════════════════════════════════════════════════════
+\begin{document}
+
+% ── TITLE ──────────────────────────────────────────────
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ── MỤC LỤC ────────────────────────────────────────────
+\begin{frame}{Nội dung trình bày}
+  \tableofcontents
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Bối cảnh \& Vấn đề}
+
+\begin{frame}{Bối cảnh \& Vấn đề}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{Thực trạng}
+      \begin{itemize}
+        \item Hà Nội thường xuyên top thành phố ô nhiễm nhất thế giới
+        \item PM2.5 vượt ngưỡng WHO nhiều ngày/năm
+        \item Ô nhiễm biến động mạnh theo giờ, mùa, thời tiết
+        \item Thiếu công cụ dự báo sớm cho người dân
+      \end{itemize}
+      \vspace{0.5em}
+      \textbf{Mục tiêu}
+      \begin{itemize}
+        \item Dự báo chỉ số \info{US AQI} theo giờ
+        \item Horizon: \textbf{+1h, +6h, +24h}
+        \item Triển khai thành \textbf{Web App} thời gian thực
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Thang AQI (US EPA)}
+      \vspace{0.3em}
+      \begin{tabular}{lll}
+        \toprule
+        \textbf{AQI} & \textbf{Mức} & \textbf{Màu} \\
+        \midrule
+        0--50   & Tốt           & \good{$\bullet$} \\
+        51--100 & Trung bình    & \warn{$\bullet$} \\
+        101--150 & Kém (nhạy cảm) & {\color{csensitive}$\bullet$} \\
+        151--200 & Xấu          & \bad{$\bullet$} \\
+        201--300 & Rất xấu      & {\color{cvery}$\bullet$} \\
+        301+     & Nguy hại     & {\color{chazard}$\bullet$} \\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Kiến trúc hệ thống}
+
+\begin{frame}{Kiến trúc hệ thống}
+  \begin{block}{Pipeline tổng quát}
+    \centering
+    \begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}]
+      \tikzstyle{box}=[rectangle, draw=cblue, fill=blue!10, rounded corners,
+                        text width=2cm, align=center, minimum height=0.8cm]
+      \tikzstyle{arr}=[->, thick, color=cblue]
+      \node[box] (api)   {Open-Meteo\\API};
+      \node[box] (feat)  [right of=api, xshift=1cm] {Feature\\Engineering};
+      \node[box] (model) [right of=feat, xshift=1cm] {ML\\Models};
+      \node[box] (fast)  [right of=model, xshift=1cm] {FastAPI\\Backend};
+      \node[box] (ui)    [right of=fast, xshift=1cm] {Web\\UI};
+      \draw[arr] (api)   -- (feat);
+      \draw[arr] (feat)  -- (model);
+      \draw[arr] (model) -- (fast);
+      \draw[arr] (fast)  -- (ui);
+    \end{tikzpicture}
+  \end{block}
+  \vspace{0.5em}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Training Pipeline}
+      \begin{enumerate}\small
+        \item \texttt{hanoi\_air\_ml\_ready\_train.csv}
+        \item Tiền xử lý \& Feature Engineering
+        \item Phân chia Train/Val/Test (70/10/20)
+        \item Huấn luyện \& chọn model tốt nhất
+        \item Lưu vào \texttt{outputs/.../models/}
+      \end{enumerate}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Inference Pipeline (live)}
+      \begin{enumerate}\small
+        \item Lấy 10 ngày lịch sử từ Open-Meteo
+        \item Merge air quality + weather
+        \item \texttt{add\_time\_features} + \texttt{add\_lag\_rolling}
+        \item \texttt{model.predict()} × 3 horizons
+        \item Trả về JSON response $\rightarrow$ UI
+      \end{enumerate}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Dữ liệu}
+
+\begin{frame}{Dữ liệu}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Nguồn dữ liệu}
+      \begin{itemize}
+        \item \info{Open-Meteo Air Quality API}:\\
+          pm2.5, pm10, NO$_2$, O$_3$, CO, SO$_2$, US AQI
+        \item \info{Open-Meteo Weather API}:\\
+          nhiệt độ, độ ẩm, áp suất, gió, mưa, mây
+        \item Vị trí: Hà Nội (21.03°N, 105.85°E)
+        \item Tần suất: hàng giờ (hourly)
+      \end{itemize}
+      \vspace{0.5em}
+      \textbf{Phân chia dữ liệu}
+      \begin{center}
+        \begin{tabular}{lrr}
+          \toprule
+          \textbf{Tập} & \textbf{Tỷ lệ} & \textbf{Số dòng} \\
+          \midrule
+          Train      & 70\% & 13,792 \\
+          Validation & 10\% & 1,970  \\
+          Test       & 20\% & 3,941  \\
+          \midrule
+          \textbf{Tổng} & 100\% & \textbf{19,703} \\
+          \bottomrule
+        \end{tabular}
+      \end{center}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Biến đầu vào (raw features)}
+      \begin{itemize}
+        \item \textbf{Chất lượng KK:} US AQI, PM2.5, PM10, NO$_2$, O$_3$, CO, SO$_2$
+        \item \textbf{Thời tiết:} Nhiệt độ, Độ ẩm, Điểm sương, Áp suất, Tốc độ gió, Hướng gió, Mưa, Mây
+        \item \textbf{Biến phái sinh:}
+          \begin{itemize}
+            \item \texttt{wind\_u}, \texttt{wind\_v} (vector gió)
+            \item \texttt{temp\_humidity} (tương tác)
+            \item \texttt{pressure\_diff} (biến đổi áp suất)
+            \item \texttt{is\_raining}
+          \end{itemize}
+      \end{itemize}
+      \vspace{0.3em}
+      \begin{alertblock}{}
+        Tổng cộng \textbf{145 features} sau Feature Engineering
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Feature Engineering}
+
+\begin{frame}{Feature Engineering}
+  \begin{columns}[T]
+    \begin{column}{0.32\textwidth}
+      \begin{block}{Lag Features}
+        Giá trị quá khứ của từng chất ô nhiễm tại các mốc:
+        \vspace{0.3em}
+        \begin{center}
+          \textbf{--1h · --3h · --6h}\\
+          \textbf{--12h · --24h · --168h}
+        \end{center}
+        \vspace{0.3em}
+        \small 7 biến $\times$ 6 lags = 42\\
+        Weather: 16 $\times$ 3 = 48
+      \end{block}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \begin{block}{Rolling Features}
+        Mean \& Std trượt của AQI, PM2.5, PM10:
+        \vspace{0.3em}
+        \begin{center}
+          \textbf{3h · 6h · 24h · 168h}
+        \end{center}
+        \vspace{0.3em}
+        \small 3 biến $\times$ 4 windows $\times$ 2 (mean/std) = 24
+      \end{block}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \begin{block}{Time Features}
+        Mã hóa chu kỳ:
+        \begin{itemize}\small
+          \item \texttt{hour\_sin/cos}
+          \item \texttt{weekday\_sin/cos}
+          \item \texttt{month\_sin/cos}
+          \item \texttt{is\_weekend}
+          \item \texttt{is\_dry\_season}
+        \end{itemize}
+        \small Mùa khô: tháng 11--4
+      \end{block}
+    \end{column}
+  \end{columns}
+  \vspace{0.5em}
+  \begin{alertblock}{Tại sao cần lag 168h (1 tuần)?}
+    Mô hình học được pattern lặp lại theo tuần --- giờ cao điểm thứ Hai sẽ tương tự thứ Hai tuần trước.
+    Cần \textbf{ít nhất 170h lịch sử} để tính đủ rolling 168h.
+  \end{alertblock}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Các mô hình}
+
+\begin{frame}{Các mô hình sử dụng}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{MARS (Multivariate Adaptive Regression Splines)}
+        \begin{itemize}\small
+          \item Tự động tìm \textbf{điểm gãy (knots)} trong dữ liệu
+          \item Phù hợp với quan hệ phi tuyến cục bộ
+          \item Thư viện: \texttt{py-earth2}
+          \item Pipeline: StandardScaler $\to$ Earth
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{SVMR (Support Vector Regression)}
+        \begin{itemize}\small
+          \item Kernel RBF, epsilon-insensitive loss
+          \item Grid search: C, epsilon, gamma
+          \item Pipeline: StandardScaler $\to$ SVR
+          \item Regularization mạnh, ổn định ở horizon dài
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{MLP (Neural Network Regressor)}
+        \begin{itemize}\small
+          \item Mạng nơ-ron nhiều lớp ẩn
+          \item Activation: ReLU, Optimizer: Adam
+          \item Pipeline: StandardScaler $\to$ MLPRegressor
+          \item Max iterations: 500
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{ARIMA}
+        \begin{itemize}\small
+          \item Mô hình chuỗi thời gian cổ điển
+          \item Univariate (chỉ dùng US AQI)
+          \item Grid search order (p $\leq$ 3, d $\leq$ 1, q $\leq$ 3)
+          \item Chọn theo AIC $\to$ ARIMA(3,0,3)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \textbf{Baseline:} Persistence --- dự đoán AQI tương lai = AQI hiện tại.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Kết quả}
+
+\begin{frame}{Kết quả --- So sánh toàn bộ mô hình}
+  \centering
+  \small
+  \begin{tabular}{c l r r r r}
+    \toprule
+    \textbf{Horizon} & \textbf{Mô hình} & \textbf{MAE} & \textbf{RMSE} & \textbf{R$^2$} & \textbf{Class Acc.} \\
+    \midrule
+    \rowcolor{green!15}
+    +1h & \textbf{MARS} $\checkmark$ & \textbf{1.22} & \textbf{2.28} & \textbf{0.9964} & \textbf{97.5\%} \\
+    +1h & ARIMA      & 1.26 & 2.60 & 0.9952 & 97.3\% \\
+    +1h & Baseline   & 1.74 & 3.67 & 0.9905 & 96.7\% \\
+    +1h & SVMR       & 2.77 & 5.02 & 0.9823 & 94.0\% \\
+    +1h & MLP        & 3.50 & 4.62 & 0.9850 & 93.2\% \\
+    \midrule
+    \rowcolor{green!15}
+    +6h & \textbf{SVMR} $\checkmark$ & \textbf{4.89} & \textbf{7.42} & \textbf{0.9613} & \textbf{89.2\%} \\
+    +6h & MLP        & 5.94 & 7.73 & 0.9580 & 88.2\% \\
+    +6h & MARS       & 6.04 & 7.88 & 0.9564 & 87.1\% \\
+    +6h & Baseline   & 9.43 & 15.53 & 0.8306 & 82.4\% \\
+    \midrule
+    \rowcolor{green!15}
+    +24h & \textbf{SVMR} $\checkmark$ & \textbf{17.11} & \textbf{21.95} & \textbf{0.6614} & \textbf{61.7\%} \\
+    +24h & MARS      & 17.36 & 22.45 & 0.6456 & 62.4\% \\
+    +24h & Baseline  & 22.96 & 30.91 & 0.3282 & 60.0\% \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.4em}
+  \begin{alertblock}{}
+    \centering $\checkmark$ = mô hình được chọn cho production. Tất cả model vượt trội so với Baseline.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Phân tích kết quả}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Theo horizon}
+      \begin{itemize}
+        \item $R^2$ giảm dần: \good{0.996} $\to$ \warn{0.961} $\to$ \bad{0.661}
+        \item MARS thắng +1h: nắm bắt quan hệ phi tuyến cục bộ tốt
+        \item SVMR ổn định ở +6h/+24h: regularization mạnh hơn
+        \item ARIMA kém ở horizon dài (chỉ 1 feature)
+      \end{itemize}
+      \vspace{0.5em}
+      \textbf{Phân loại mức AQI}
+      \begin{center}
+        \begin{tabular}{lll}
+          \toprule
+          Horizon & Accuracy & F1 \\
+          \midrule
+          +1h  & \good{97.5\%} & 0.956 \\
+          +6h  & \warn{89.2\%} & 0.822 \\
+          +24h & \bad{61.7\%}  & 0.466 \\
+          \bottomrule
+        \end{tabular}
+      \end{center}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{+1h: MARS}
+        \centering
+        $R^2 = 0.9964$ \quad RMSE = 2.28 AQI\\
+        \small Dự báo cực kỳ chính xác
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{+6h: SVMR}
+        \centering
+        $R^2 = 0.9613$ \quad RMSE = 7.42 AQI\\
+        \small Vẫn rất tốt cho kế hoạch trong ngày
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{+24h: SVMR}
+        \centering
+        $R^2 = 0.6614$ \quad RMSE = 21.95 AQI\\
+        \small Hữu ích cho cảnh báo sớm
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{API \& Giao diện}
+
+\begin{frame}{API Backend (FastAPI)}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Các endpoint}
+      \begin{center}
+        \begin{tabular}{ll}
+          \toprule
+          \textbf{Endpoint} & \textbf{Mô tả} \\
+          \midrule
+          \texttt{GET /}              & Giao diện Web \\
+          \texttt{GET /api/forecast}  & Dự báo AQI live \\
+          \texttt{GET /api/health}    & Kiểm tra model \\
+          \texttt{GET /api/metrics}   & Kết quả đánh giá \\
+          \bottomrule
+        \end{tabular}
+      \end{center}
+      \vspace{0.3em}
+      \textbf{Response \texttt{/api/forecast}}
+      \begin{itemize}\small
+        \item \textbf{current:} AQI hiện tại, PM2.5, thời tiết
+        \item \textbf{forecasts:} 3 horizons + khoảng tin cậy
+        \item \textbf{recent\_observations:} 72h gần nhất
+        \item Confidence interval: AQI $\pm$ RMSE
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Công nghệ sử dụng}
+      \begin{itemize}
+        \item \textbf{Backend:} FastAPI, Uvicorn, Pandas, NumPy
+        \item \textbf{ML:} scikit-learn, statsmodels, py-earth2
+        \item \textbf{Data live:} Open-Meteo Air + Weather API
+        \item \textbf{Frontend:} Vanilla JS, Chart.js, HTML/CSS
+      \end{itemize}
+      \vspace{0.5em}
+      \begin{block}{Chạy ứng dụng}
+        \centering
+        \texttt{uvicorn app.main:app --reload}\\
+        \vspace{0.2em}
+        Truy cập: \texttt{http://localhost:8000}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Giao diện người dùng}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{Thông tin hiển thị}
+      \begin{itemize}
+        \item \textbf{AQI hiện tại} với màu sắc theo mức độ
+        \item Chi tiết: PM2.5, PM10, NO$_2$, O$_3$, nhiệt độ, độ ẩm, gió
+        \item \textbf{3 thẻ dự báo}: +1h, +6h, +24h kèm khoảng tin cậy
+        \item Biểu đồ đường 72h gần nhất
+        \item Khuyến nghị sức khỏe theo mức AQI
+        \item Dark mode, responsive design
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Khuyến nghị theo mức AQI}
+      \begin{center}
+        \small
+        \begin{tabular}{ll}
+          \toprule
+          \textbf{Mức} & \textbf{Khuyến nghị} \\
+          \midrule
+          \good{Tốt}        & Hoạt động bình thường \\
+          \warn{Trung bình} & Nhóm nhạy cảm theo dõi \\
+          {\color{csensitive}Kém} & Hạn chế vận động mạnh \\
+          \bad{Xấu}         & Giảm thời gian ngoài trời \\
+          {\color{cvery}Rất xấu} & Tránh ra ngoài \\
+          {\color{chazard}Nguy hại} & Ở trong nhà \\
+          \bottomrule
+        \end{tabular}
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════
+\section{Kết luận}
+
+\begin{frame}{Kết luận \& Hướng phát triển}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Đã đạt được}
+      \begin{itemize}
+        \item[\checkmark] Thu thập \& xử lý dữ liệu Hà Nội
+        \item[\checkmark] EDA chuyên sâu (mùa, giờ, gió, mưa)
+        \item[\checkmark] Feature engineering 145 features
+        \item[\checkmark] Train \& so sánh 4 mô hình $\times$ 3 horizon
+        \item[\checkmark] $R^2 = 0.996$ ở dự báo +1h (MARS)
+        \item[\checkmark] API backend FastAPI
+        \item[\checkmark] Web App hoàn chỉnh với dữ liệu live
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Hướng phát triển}
+      \begin{itemize}
+        \item Retrain định kỳ với dữ liệu mới
+        \item Thêm dữ liệu giao thông (traffic)
+        \item Nhiều trạm đo hơn (đa điểm trong TP)
+        \item LSTM / Transformer cho chuỗi thời gian
+        \item Deploy lên cloud (Render, AWS)
+        \item Mobile app với push notification
+        \item Mở rộng sang TP.HCM, Đà Nẵng
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \vspace{1em}
+  \begin{center}
+    \large\textbf{\color{cblue} AirSense Hà Nội}\\
+    \normalsize Dự báo không khí sớm, bảo vệ sức khỏe cộng đồng
+  \end{center}
+\end{frame}
+
+% ── CẢM ƠN ─────────────────────────────────────────────
+\begin{frame}
+  \begin{center}
+    \vspace{2em}
+    {\Huge \textbf{Cảm ơn!}}\\
+    \vspace{1em}
+    {\large Câu hỏi \& Thảo luận}\\
+    \vspace{2em}
+    \begin{tabular}{ll}
+      \textbf{Source:} & \texttt{github.com/nguyenquypro17/Data-Science} \\
+      \textbf{Demo:}   & \texttt{http://localhost:8000} \\
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+\end{document}
