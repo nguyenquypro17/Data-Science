@@ -156,53 +156,130 @@
 % ═══════════════════════════════════════════════════════
 \section{Dữ liệu}
 
-\begin{frame}{Dữ liệu}
+% ── SLIDE: Thu thập dữ liệu ──
+\begin{frame}{Thu thập dữ liệu}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \textbf{Nguồn dữ liệu}
-      \begin{itemize}
-        \item \info{Open-Meteo Air Quality API}:\\
-          pm2.5, pm10, NO$_2$, O$_3$, CO, SO$_2$, US AQI
-        \item \info{Open-Meteo Weather API}:\\
-          nhiệt độ, độ ẩm, áp suất, gió, mưa, mây
-        \item Vị trí: Hà Nội (21.03°N, 105.85°E)
-        \item Tần suất: hàng giờ (hourly)
-      \end{itemize}
-      \vspace{0.5em}
-      \textbf{Phân chia dữ liệu}
-      \begin{center}
-        \begin{tabular}{lrr}
-          \toprule
-          \textbf{Tập} & \textbf{Tỷ lệ} & \textbf{Số dòng} \\
-          \midrule
-          Train      & 70\% & 13,792 \\
-          Validation & 10\% & 1,970  \\
-          Test       & 20\% & 3,941  \\
-          \midrule
-          \textbf{Tổng} & 100\% & \textbf{19,703} \\
-          \bottomrule
-        \end{tabular}
-      \end{center}
-    \end{column}
     \begin{column}{0.5\textwidth}
-      \textbf{Biến đầu vào (raw features)}
-      \begin{itemize}
-        \item \textbf{Chất lượng KK:} US AQI, PM2.5, PM10, NO$_2$, O$_3$, CO, SO$_2$
-        \item \textbf{Thời tiết:} Nhiệt độ, Độ ẩm, Điểm sương, Áp suất, Tốc độ gió, Hướng gió, Mưa, Mây
-        \item \textbf{Biến phái sinh:}
-          \begin{itemize}
-            \item \texttt{wind\_u}, \texttt{wind\_v} (vector gió)
-            \item \texttt{temp\_humidity} (tương tác)
-            \item \texttt{pressure\_diff} (biến đổi áp suất)
-            \item \texttt{is\_raining}
-          \end{itemize}
-      \end{itemize}
-      \vspace{0.3em}
-      \begin{alertblock}{}
-        Tổng cộng \textbf{145 features} sau Feature Engineering
+      \begin{block}{Open-Meteo Air Quality API}
+        \small
+        \textbf{Endpoint:} \texttt{air-quality-api.open-meteo.com}\\[0.3em]
+        \textbf{Biến trả về (hourly):}
+        \begin{itemize}\small
+          \item \texttt{pm2\_5} $\to$ \texttt{pm25} \quad (µg/m³)
+          \item \texttt{pm10} \quad (µg/m³)
+          \item \texttt{carbon\_monoxide} $\to$ \texttt{co}
+          \item \texttt{nitrogen\_dioxide} $\to$ \texttt{no2}
+          \item \texttt{sulphur\_dioxide} $\to$ \texttt{so2}
+          \item \texttt{ozone} $\to$ \texttt{o3}
+          \item \texttt{us\_aqi} \quad \textbf{← biến mục tiêu}
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Open-Meteo Weather Forecast API}
+        \small
+        \textbf{Endpoint:} \texttt{api.open-meteo.com}\\[0.3em]
+        \textbf{Biến trả về (hourly):}
+        \begin{itemize}\small
+          \item \texttt{temperature\_2m} $\to$ \texttt{temperature}
+          \item \texttt{relative\_humidity\_2m} $\to$ \texttt{humidity}
+          \item \texttt{dew\_point\_2m} $\to$ \texttt{dew\_point}
+          \item \texttt{pressure\_msl}, \texttt{surface\_pressure}
+          \item \texttt{wind\_speed\_10m} $\to$ \texttt{wind\_speed} (m/s)
+          \item \texttt{wind\_direction\_10m} $\to$ \texttt{wind\_direction}
+          \item \texttt{precipitation}, \texttt{rain}, \texttt{cloud\_cover}
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{alertblock}{Tham số gọi API}
+        \small
+        Vị trí: 21.0285°N, 105.8542°E (Hà Nội)\\
+        \texttt{past\_days=10}, \texttt{forecast\_days=1}, \texttt{timezone=GMT}
+      \end{alertblock}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{alertblock}{Merge}
+        \small
+        \texttt{air.merge(weather, on="datetime", how="inner")}\\
+        Lọc: chỉ giữ hàng $\leq$ thời điểm hiện tại
       \end{alertblock}
     \end{column}
   \end{columns}
+\end{frame}
+
+% ── SLIDE: Tiền xử lý dữ liệu ──
+\begin{frame}{Tiền xử lý dữ liệu --- Từ raw đến sạch}
+
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Các bước xử lý (theo thứ tự code)}
+      \begin{enumerate}\small
+        \item \textbf{Sort \& dedup:} sắp xếp theo \texttt{datetime}, loại bỏ hàng trùng giờ\\
+              \texttt{sort\_values → drop\_duplicates}
+
+        \item \textbf{Ép kiểu số:} toàn bộ cột số được cast về \texttt{float}, giá trị lỗi thành \texttt{NaN}\\
+              \texttt{pd.to\_numeric(errors="coerce")}
+
+        \item \textbf{Tạo biến phái sinh:}
+          \begin{itemize}\small
+            \item \texttt{wind\_u = $-$speed$\cdot\sin(\theta)$} \quad (gió Đông-Tây)
+            \item \texttt{wind\_v = $-$speed$\cdot\cos(\theta)$} \quad (gió Bắc-Nam)
+            \item \texttt{temp\_humidity = temp $\times$ humidity}
+            \item \texttt{pressure\_diff = $\Delta$pressure\_msl}
+            \item \texttt{is\_raining = (rain $>$ 0)}
+          \end{itemize}
+
+        \item \textbf{Điền NaN:}\\
+              \texttt{interpolate(limit=3) → ffill → bfill}\\
+              \small Tối đa lấp 3 giờ liên tiếp bằng nội suy tuyến tính
+
+        \item \textbf{Thêm múi giờ:}\\
+              UTC $\to$ \texttt{Asia/Bangkok} (UTC+7)
+      \end{enumerate}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \textbf{Feature Engineering tiếp theo}
+      \begin{enumerate}\small
+        \setcounter{enumi}{5}
+        \item \textbf{Time features} (sin/cos encoding):
+          \begin{itemize}\small
+            \item \texttt{hour\_sin/cos} = $\sin/\cos\!\left(\frac{2\pi \cdot h}{24}\right)$
+            \item \texttt{weekday\_sin/cos} = $\sin/\cos\!\left(\frac{2\pi \cdot d}{7}\right)$
+            \item \texttt{month\_sin/cos} = $\sin/\cos\!\left(\frac{2\pi \cdot m}{12}\right)$
+            \item \texttt{is\_weekend}, \texttt{is\_dry\_season}
+          \end{itemize}
+
+        \item \textbf{Lag features:} giá trị tại $-$1h, $-$3h, $-$6h, $-$12h, $-$24h, $-$168h
+
+        \item \textbf{Rolling features:} mean \& std trượt 3h, 6h, 24h, 168h
+
+        \item \textbf{Loại hàng thiếu:}\\
+              \texttt{replace(inf→NaN) → dropna}
+      \end{enumerate}
+      \vspace{0.3em}
+      \begin{alertblock}{}
+        \centering
+        Raw: $\sim$20 cột $\xrightarrow{\text{9 bước}}$ \textbf{145 features sạch}
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+
+  \begin{block}{Phân chia dữ liệu (chronological --- không shuffle)}
+    \centering\small
+    \begin{tabular}{lcr}
+      \toprule
+      \textbf{Tập} & \textbf{Tỷ lệ} & \textbf{Số dòng} \\
+      \midrule
+      Train & 70\% & 13,792 \quad (dữ liệu cũ nhất) \\
+      Validation & 10\% & 1,970 \quad (chọn hyperparameter) \\
+      Test & 20\% & 3,941 \quad (dữ liệu mới nhất, đánh giá cuối) \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
 \end{frame}
 
 % ═══════════════════════════════════════════════════════
